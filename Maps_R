@@ -6,9 +6,11 @@ library(readxl)
 library(ggsn)
 
 #to read capital coordinates
+# "capitals" file include the location/latitude/longitude/
 Capitals <- read_excel("capitals.xlsx")
 
 #to read in the whitefly location excel file
+#the file include locations, number of sample collections and coordinates
 Whitefly_Location_2923 <- read_excel("Neonic_map23.xlsx") %>% 
   dplyr::select(1, 2, 3, 4) 
 
