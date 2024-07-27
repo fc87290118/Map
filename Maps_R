@@ -1,0 +1,62 @@
+#to load the required packages
+library(tidyverse)
+library(sf)
+library(rmapshaper)
+library(readxl)
+library(ggsn)
+
+#to read capital coordinates
+Capitals <- read_excel("capitals.xlsx")
+
+#to read in the whitefly location excel file
+Whitefly_Location_2923 <- read_excel("Neonic_map23.xlsx") %>% 
+  dplyr::select(1, 2, 3, 4) 
+
+# read Aus borders from ABS
+# rmapshaper allows to change the amount of details needed in the map
+NSW_QLD <- sf::read_sf("STE_2021_AUST_GDA2020.dbf") %>% 
+  dplyr::filter(STE_CODE21 %in% c(1,3)) %>% 
+  rmapshaper::ms_simplify(keep = 0.01)
+
+
+# map geom_point of the whitefly locations onto the ABS map, the circles have shape 21, use "fill" argument instead of color, that gives a lined circles 
+
+# geom_text is for adding text to the circles
+
+
+# map whitefly sample locations and capitals to the ABS Aus map
+Map_Whitefly <- ggplot() + 
+  
+  ## geom_sf draw different geometric objects, allows you to pick the states that you want to show, in this case is NSW and QLD
+  ## show.legend to tell ggplot2 what type of legend to use, default = NA
+  geom_sf(data = NSW_QLD, size = .1, show.legend = FALSE)+ 
+  
+  ## geom_point() creates the scatterplots on the map based on the whitefly_location file which include the coordinates
+  ## shapes gives you different shapes for the scatter points, we are using shape 21 here which has borders and fill (the color inside)
+  ## aesthetics x and y axis shows the longitude and latitude of which corresponds to the ones in the whitefly_location file
+  ## aesthetics 'fill' can be used to define the populations, or you can uniquely choose the inside color
+  ## For shapes that have a border (like 21) you can color the inside and outside separately. Use the 'stroke' aesthetic to modify the width of the boder
+  ## size allows you to modify the sizes of the shape, if shapes need to be in different sizes according to your sample then you choose the column the sizes needs to be based on 
+  geom_point(data = Whitefly_Location_2923, aes(x = longitude, y = latitude, fill = `Location`, size = `number of collection`), shape = 21) + 
+  
+  ## guides argument is for manipulating the figure legend
+  ## in this case, the 'fill' aesthetic which are the Field sites (states) needs to be in 2 columns, and we override the previous aesthetic and make the 'fill' Field sites (states) size = 6, otherwise it is really small and hard to see the color in each fille circle
+  guides(fill = guide_legend(ncol = 2, override.aes = list(size=5)))+
+  
+  ## theme argument for manipulating the legend key, to make the legend key element blank, and not to have background color
+  theme(legend.key = element_blank())+
+  
+  ## using another geom_point to add in the capital cities using Capitals dataset and add in the coordinates, chose shape 16, as capital cities doesn't need the fill and border
+  geom_point(data = Capitals, aes(x = Longitude, y = Latitude), shape = 16) + 
+  
+  ## using geom_text to add in the text next to the capital shapes (circle) hjust adjust the location of the text around the circle
+  geom_text(data = Capitals, aes(x = Longitude, y = Latitude, label = Capitals), hjust = -0.18) + 
+  
+  ## scale_size() adjust the sizes of the filled circles for Field sites (states)
+  scale_size(range = c(3,3)) +
+  
+  ## if you already specified the scale_size, then use guide_binds under guides to add the bins for your scale, it shows the limits for your scale_size
+  guides(size = guide_bins(show.limits = TRUE, direction = "vertical"))
+
+  ## north2 adds a north symbol
+north2(Map_Whitefly, x = 0.52, y = 0.85, scale = 0.1, symbol = 3)
